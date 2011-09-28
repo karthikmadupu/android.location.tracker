@@ -1,5 +1,8 @@
 package pl.bgadzala.android.location.tracker;
 
+import java.util.Iterator;
+import java.util.List;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -13,7 +16,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
-import android.widget.Toast;
+import android.util.Log;
 
 /**
  * @author	BGadzala
@@ -23,6 +26,7 @@ public class TrackerService extends Service {
 
 	private Looper serviceLooper;
 	private ServiceHandler serviceHandler;
+	private LocationStorageHelper locationStorageHelper;
 
 	private final class ServiceHandler extends Handler {
 		private LocationListener locationListener;
@@ -35,8 +39,9 @@ public class TrackerService extends Service {
 		public void handleMessage(Message msg) {
 			createLocationListener();
 			registerLocationListener();
-			sleep(5);
+			sleep(30);
 			unregisterLocationListener();
+			fetchLatestLoctions();
 			stopSelf(msg.arg1);
 		}
 
@@ -93,6 +98,14 @@ public class TrackerService extends Service {
 				}
 			}
 		}
+
+		private void fetchLatestLoctions() {
+			LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+			List<String> providers = locationManager.getAllProviders();
+			for (Iterator<String> iterator = providers.iterator(); iterator.hasNext();) {
+				register(locationManager.getLastKnownLocation(iterator.next()));
+			}
+		}
 	}
 
 	/* (non-Javadoc)
@@ -102,11 +115,15 @@ public class TrackerService extends Service {
 	public void onCreate() {
 		super.onCreate();
 
+		this.locationStorageHelper = new LocationStorageHelper(getApplicationContext());
+
 		HandlerThread thread = new HandlerThread("LocationTrackerThread", Process.THREAD_PRIORITY_BACKGROUND);
 		thread.start();
 
 		this.serviceLooper = thread.getLooper();
 		this.serviceHandler = new ServiceHandler(this.serviceLooper);
+
+		Log.i("LocationTracker", "created");
 	}
 
 	/* (non-Javadoc)
@@ -114,8 +131,6 @@ public class TrackerService extends Service {
 	 */
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
-
 		Message msg = this.serviceHandler.obtainMessage();
 		msg.arg1 = startId;
 		this.serviceHandler.sendMessage(msg);
@@ -136,8 +151,12 @@ public class TrackerService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
-		Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show();
 		super.onDestroy();
+	}
+
+	protected void register(Location location) {
+		Log.i("LocationTracker", "Registering [" + location + "]");
+		this.locationStorageHelper.insert(location);
 	}
 
 }
