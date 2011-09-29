@@ -16,8 +16,10 @@
         </activity>
         
         <service android:name=".TrackerService">
-        
         </service>
+        
+        <receiver android:name=".AlarmReceiver" android:process=":remote">
+        </receiver>
 
     </application>
 </manifest>

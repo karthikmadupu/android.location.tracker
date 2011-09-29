@@ -5,5 +5,7 @@
 
 	<Button android:text="Start" android:layout_height="wrap_content"
 		android:id="@+id/buttonStart" android:layout_width="match_parent"></Button>
+	<Button android:text="Stop" android:layout_height="wrap_content"
+		android:id="@+id/buttonStop" android:layout_width="match_parent"></Button>
 
 </LinearLayout>
