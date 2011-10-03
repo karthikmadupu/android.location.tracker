@@ -15,6 +15,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.Process;
 import android.util.Log;
 
@@ -23,6 +24,8 @@ import android.util.Log;
  * @since	0.1.0
  */
 public class TrackerService extends Service {
+
+	private static PowerManager.WakeLock wakeLock = null;
 
 	private Looper serviceLooper;
 	private ServiceHandler serviceHandler;
@@ -37,11 +40,16 @@ public class TrackerService extends Service {
 
 		@Override
 		public void handleMessage(Message msg) {
-			createLocationListener();
-			registerLocationListener();
-			sleep(30);
-			unregisterLocationListener();
-			fetchLatestLoctions();
+			try {
+				createLocationListener();
+				registerLocationListener();
+				sleep(30);
+				unregisterLocationListener();
+				fetchLatestLoctions();
+			} finally {
+				getLock(getApplicationContext()).release();
+			}
+
 			stopSelf(msg.arg1);
 		}
 
@@ -154,9 +162,22 @@ public class TrackerService extends Service {
 		super.onDestroy();
 	}
 
+	public static void acquireStaticLock(Context context) {
+		getLock(context).acquire();
+	}
+
 	protected void register(Location location) {
 		Log.i("LocationTracker", "Registering [" + location + "]");
 		this.locationStorageHelper.insert(location);
 	}
 
+	synchronized private static PowerManager.WakeLock getLock(Context context) {
+		if (wakeLock == null) {
+			PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+			wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TrackerWakeLock");
+			wakeLock.setReferenceCounted(false);
+		}
+
+		return wakeLock;
+	}
 }

@@ -49,8 +49,12 @@ public class LocationStorageHelper extends SQLiteOpenHelper {
 		values.put(LOCATION_KEY_LONGITUDE, String.valueOf(location.getLongitude()));
 		
 		SQLiteDatabase db = getWritableDatabase();
-		if (db.insert(LOCATION_TABLE_NAME, null, values) == -1) {
-			throw new SQLException("Cannot insert [" + location + "]");
+		try {
+			if (db.insert(LOCATION_TABLE_NAME, null, values) == -1) {
+				throw new SQLException("Cannot insert [" + location + "]");
+			}
+		} finally {
+			db.close();
 		}
 	}
 
